@@ -11,6 +11,11 @@ export default async function viewRoute(url: URL, req: IncomingMessage, res: Ser
         let packageName = repoPath.packageName;
         let view = url.pathname.substring(viewRoute.prefix.length);
         let root = "";
+        let embedScript = "";
+
+        if(repoPath.exists("./.vscode/.waSetup.js")) {
+            embedScript = `<script src="/.vscode/.waSetup.js"></script>`
+        }
 
         if (url.pathname === "/") {
             view = "@web-atoms/web-controls/dist/dev/DevHost";
@@ -21,6 +26,7 @@ export default async function viewRoute(url: URL, req: IncomingMessage, res: Ser
                 .replaceAll("@packageName", packageName)
                 .replaceAll("@view", view)
                 .replaceAll("@root", root)
+                .replaceAll("<embed-script/>", embedScript)
         );
 
     } catch (error) {
