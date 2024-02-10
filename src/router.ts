@@ -6,6 +6,9 @@ import staticRoute from "./routes/staticRoute.js";
 import { repoPath } from "./core/repoPath.js";
 import modulesRoute from "./routes/modulesRoute.js";
 
+import { WebSocketServer } from 'ws';
+import { wsProxy } from "./wsProxy.js";
+
 const proxyHost = process.argv.find((s) => /^(http|https)\:\/\//.test(s)) ?? "https://localhost";
 
 console.log(`Starting Proxy to ${proxyHost}`);
@@ -16,13 +19,15 @@ const errorHandler = (error) => {
 
 const proxyHostURL = new URL(proxyHost);
 
+console.log(proxyHostURL.protocol);
+
 export default function router(server: Server, secure = false) {
 
     const proxy = httpProxy.createProxyServer({
         target: proxyHost,
         changeOrigin: true,
-        ws: true,
         secure: true,
+        ws: true,
         hostRewrite: proxyHostURL.host,
         cookieDomainRewrite: {
             "*": ""
@@ -55,18 +60,17 @@ export default function router(server: Server, secure = false) {
 
     server.on("upgrade", (req, socket, head) => {
         console.log(`Forwarding WS ${req.url}`);
-        socket.on("error", errorHandler);
+        const url = new URL( req.url, proxyHostURL.protocol === "https:" ? `wss://${proxyHostURL.host}` : `ws://${proxyHostURL.host}`);
+        // socket.on("error", errorHandler);
+        // wsProxy(url, req, socket, head);
         proxy.ws(req, socket, head);
     });
 
     proxy.on("proxyRes", (pRes, res) => {
         let cookie = pRes.headers["set-cookie"];
         if (cookie) {
-            cookie = cookie.map((s) => s.split(";").filter((c) => !/^secure$/i.test(c.trim())).join(";") + ";SameSite=false;");
-            console.log(cookie.join(","));
-            // pRes.setHeader("set-cookie",cookie);
+            cookie = cookie.map((s) => s.split(";").filter((c) => !/^secure$/i.test(c.trim())).join(";"));
             pRes.headers["set-cookie"] = cookie;
-            console.log(JSON.stringify(pRes.headers, void 0, 2));
         }
 
         if (pRes.statusCode >= 400) {
