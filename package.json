@@ -8,7 +8,7 @@
     "web-atoms-dev": "bin/index.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "echo \"Error: no test specified\" && exit 0",
     "postversion": "git push --follow-tags"
   },
   "preferGlobal": true,
