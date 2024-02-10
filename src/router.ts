@@ -1,6 +1,6 @@
 import { IncomingMessage, Server, ServerResponse } from "http";
 import viewRoute from "./routes/viewRoute.js";
-
+import colors from "colors/safe.js";
 import httpProxy from "http-proxy";
 import staticRoute from "./routes/staticRoute.js";
 import { repoPath } from "./core/repoPath.js";
@@ -41,9 +41,6 @@ export default function router(server: Server, secure = false) {
             modulesRoute(url, req, res).catch(console.error);
             return;
         }
-
-        console.log(`Proxying: ${req.url}`);
-
         proxy.web(req, res);
     });
 
@@ -57,6 +54,12 @@ export default function router(server: Server, secure = false) {
             cookie = Array.isArray(cookie) ? cookie : [cookie];
             cookie = cookie.map((s) => s.split(";").filter((c) => c.trim().toLocaleLowerCase() !== "secure").join(";"));
             pRes.setHeader("set-cookie",cookie);
+        }
+
+        if (pRes.statusCode >= 400) {
+            console.error( colors.red(`HTTP STATUS ${pReq.statusCode} for ${proxyHost}${pReq.url}`));
+        } else if (pRes.statusCode > 300) {
+            console.error( colors.yellow(`HTTP STATUS ${pReq.statusCode} for ${proxyHost}${pReq.url}`));
         }
     });
 
