@@ -11,7 +11,7 @@ const { cert, key } = SelfSigned.setupSelfSigned();
 const netInterfaces = os.networkInterfaces();
 
 const httpPort = await portfinder.getPortPromise({
-    startPort: 8080
+    port: 8080
 });
 
 const httpPortColored = colors.cyan(httpPort.toString());
@@ -28,7 +28,7 @@ const httpServer = http.createServer().listen(httpPort, () => {
 });
 
 const httpsPort = await portfinder.getPortPromise({
-    startPort: 8085
+    port: 8081
 });
 
 const httpsPortColored = colors.cyan(httpsPort.toString());
