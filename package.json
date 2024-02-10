@@ -1,6 +1,6 @@
 {
   "name": "@web-atoms/dev",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Lightweight Dev Server for Web Server with Proxy to Live Web",
   "main": "index.js",
   "type": "module",
