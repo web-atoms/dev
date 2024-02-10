@@ -3,7 +3,7 @@ import * as portfinder from "portfinder";
 import * as http from "node:http";
 import * as https from "node:https";
 import * as os from "node:os";
-import * as colors from "colors/safe.js";
+import colors from "colors/safe.js";
 import router from "./router.js";
 
 const { cert, key } = SelfSigned.setupSelfSigned();
@@ -31,7 +31,7 @@ const httpsPort = await portfinder.getPortPromise({
     startPort: 8085
 });
 
-const httpsPortColored = colors.cyan(httpPort.toString());
+const httpsPortColored = colors.cyan(httpsPort.toString());
 const httpsServer = https.createServer( { cert, key }).listen(httpsPort, () => {
     for (const iterator of Object.keys(netInterfaces)) {
         const intFace = netInterfaces[iterator];

@@ -1,12 +1,14 @@
 import { IncomingMessage, Server, ServerResponse } from "http";
-import devRoute from "./routes/repoRoute.js";
-import homeRoute from "./routes/homeRoute.js";
+import viewRoute from "./routes/viewRoute.js";
 
 import httpProxy from "http-proxy";
+import staticRoute from "./routes/staticRoute.js";
+import { repoPath } from "./core/repoPath.js";
+import modulesRoute from "./routes/modulesRoute.js";
 
 const proxyHost = process.argv.find((s) => /^(http|https)\:\/\//.test(s));
 
-export default function router(server: Server) {
+export default function router(server: Server, secure = false) {
 
     const proxy = httpProxy.createProxyServer({
         target: proxyHost,
@@ -18,15 +20,29 @@ export default function router(server: Server) {
         },        
     });
 
-    const wrap = (url: URL, fx: (url: URL, req: IncomingMessage, res: ServerResponse) => any) => (req: IncomingMessage, res: ServerResponse) => {
-        fx(url, req, res)?.catch(console.error);
-    };
+    proxy.on("error", console.error);
+
+    server.on("error", console.error);
 
     server.on("request", (req, res) => {
-        const url = new URL(req.url);
+        const url = new URL( req.url, secure ? `https://${req.headers.host}` : `http://${req.headers.host}`);
 
-        wrap(url, devRoute);
-        wrap(url, homeRoute);
+        if (url.pathname === "/" || url.pathname.startsWith(viewRoute.prefix)) {
+            viewRoute(url, req, res).catch(console.error);
+            return;
+        }
+
+        if (repoPath.exists(url.pathname.substring(1))) {
+            staticRoute(url, req, res).catch(console.error);
+            return;
+        }
+
+        if (url.pathname.startsWith("/flat-modules")) {
+            modulesRoute(url, req, res).catch(console.error);
+            return;
+        }
+
+        console.log(`Proxying: ${req.url}`);
 
         proxy.web(req, res);
     });

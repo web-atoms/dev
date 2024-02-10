@@ -11,7 +11,7 @@
                 margin: 0;
             }
     </style>
-    <script src="/_repo/node_modules/@web-atoms/module-loader/umd.js"></script>
+    <script src="/node_modules/@web-atoms/module-loader/umd.js"></script>
 </head>
 <body>
     
@@ -37,9 +37,11 @@ I8,        8        ,8I            88                     db
         <script
             data-package="@packageName"
             data-min="false"
-            data-package-root=""
+            data-package-root="@root"
             data-view="@view"
-            src="/_repo/node_modules/@web-atoms/web-atoms/index.js">
+            data-packed="false"
+            data-map='[["@packageName", ""]]'
+            src="/node_modules/@web-atoms/web-controls/index.js">
         
     </script>
 </body>

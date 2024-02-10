@@ -7,9 +7,18 @@ export const ResponseHelper = {
         text: string | Buffer,
         contentType = "text/html",
         status = 200) => {
-        res.statusCode = status;
-        res.setHeader("content-type", contentType);
-        res.write(text, () => res.end());
+        return new Promise<void>((resolve, reject) => {
+            res.statusCode = status;
+            res.setHeader("content-type", contentType);
+            res.write(text, () => {
+                try {
+                    res.end();
+                    resolve();
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        });
     }
 
 };
