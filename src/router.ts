@@ -8,6 +8,10 @@ import modulesRoute from "./routes/modulesRoute.js";
 
 const proxyHost = process.argv.find((s) => /^(http|https)\:\/\//.test(s));
 
+const errorHandler = (error) => {
+    console.error(error.stack ?? error.toString());
+};
+
 export default function router(server: Server, secure = false) {
 
     const proxy = httpProxy.createProxyServer({
@@ -17,34 +21,35 @@ export default function router(server: Server, secure = false) {
         secure: true,
         cookieDomainRewrite: {
             "*": ""
-        },        
+        }
     });
 
-    proxy.on("error", console.error);
+    proxy.on("error", errorHandler);
 
-    server.on("error", console.error);
+    server.on("error", errorHandler);
 
     server.on("request", (req, res) => {
         const url = new URL( req.url, secure ? `https://${req.headers.host}` : `http://${req.headers.host}`);
 
         if (url.pathname === "/" || url.pathname.startsWith(viewRoute.prefix)) {
-            viewRoute(url, req, res).catch(console.error);
+            viewRoute(url, req, res).catch(errorHandler);
             return;
         }
 
         if (repoPath.exists(url.pathname.substring(1))) {
-            staticRoute(url, req, res).catch(console.error);
+            staticRoute(url, req, res).catch(errorHandler);
             return;
         }
 
         if (url.pathname.startsWith("/flat-modules")) {
-            modulesRoute(url, req, res).catch(console.error);
+            modulesRoute(url, req, res).catch(errorHandler);
             return;
         }
         proxy.web(req, res);
     });
 
     server.on("upgrade", (req, socket, head) => {
+        console.log(`Forwarding WS ${req.url}`);
         proxy.ws(req, socket, head);
     });
 
