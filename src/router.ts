@@ -6,11 +6,15 @@ import staticRoute from "./routes/staticRoute.js";
 import { repoPath } from "./core/repoPath.js";
 import modulesRoute from "./routes/modulesRoute.js";
 
-const proxyHost = process.argv.find((s) => /^(http|https)\:\/\//.test(s));
+const proxyHost = process.argv.find((s) => /^(http|https)\:\/\//.test(s)) ?? "https://localhost";
+
+console.log(`Starting Proxy to ${proxyHost}`);
 
 const errorHandler = (error) => {
     console.error(error.stack ?? error.toString());
 };
+
+const proxyHostURL = new URL(proxyHost);
 
 export default function router(server: Server, secure = false) {
 
@@ -19,13 +23,14 @@ export default function router(server: Server, secure = false) {
         changeOrigin: true,
         ws: true,
         secure: true,
+        hostRewrite: proxyHostURL.host,
         cookieDomainRewrite: {
             "*": ""
         }
     });
 
     proxy.on("error", errorHandler);
-
+    proxy.on("econnreset", errorHandler);
     server.on("error", errorHandler);
 
     server.on("request", (req, res) => {
@@ -50,21 +55,24 @@ export default function router(server: Server, secure = false) {
 
     server.on("upgrade", (req, socket, head) => {
         console.log(`Forwarding WS ${req.url}`);
+        socket.on("error", errorHandler);
         proxy.ws(req, socket, head);
     });
 
-    proxy.on("proxyRes", (pReq, res, pRes) => {
-        let cookie = pRes.getHeader("set-cookie") as any;
+    proxy.on("proxyRes", (pRes, res) => {
+        let cookie = pRes.headers["set-cookie"];
         if (cookie) {
-            cookie = Array.isArray(cookie) ? cookie : [cookie];
-            cookie = cookie.map((s) => s.split(";").filter((c) => c.trim().toLocaleLowerCase() !== "secure").join(";"));
-            pRes.setHeader("set-cookie",cookie);
+            cookie = cookie.map((s) => s.split(";").filter((c) => !/^secure$/i.test(c.trim())).join(";") + ";SameSite=false;");
+            console.log(cookie.join(","));
+            // pRes.setHeader("set-cookie",cookie);
+            pRes.headers["set-cookie"] = cookie;
+            console.log(JSON.stringify(pRes.headers, void 0, 2));
         }
 
         if (pRes.statusCode >= 400) {
-            console.error( colors.red(`HTTP STATUS ${pReq.statusCode} for ${proxyHost}${pReq.url}`));
+            console.error( colors.red(`HTTP STATUS ${pRes.statusCode} for ${proxyHost}${pRes.url}`));
         } else if (pRes.statusCode > 300) {
-            console.error( colors.yellow(`HTTP STATUS ${pReq.statusCode} for ${proxyHost}${pReq.url}`));
+            console.error( colors.yellow(`HTTP STATUS ${pRes.statusCode} for ${proxyHost}${pRes.url}`));
         }
     });
 
